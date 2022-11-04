@@ -1,69 +1,101 @@
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 import matplotlib.patches as patches
+import matplotlib.colors as mcolors
+from typing import List, Dict, Tuple
+import random
+import numpy as np
 
-# function to plot images using matplotlib subplots
-def grid_images(imgs, rows=1, cols=1, titles=None, figsize = (10,10), axis=False, cmap=False):
-  fig, axs = plt.subplots(rows, cols, figsize = figsize)
-  if rows <= 1 or cols <= 1:
-    for idx, img in enumerate(imgs):
-      axs[idx].imshow(img, cmap=cmap)
-      if axis:
-        axs[idx].axis(axis)
-      if titles:
-        axs[idx].set_title(titles[idx])
-  else:
-    imgs = np.reshape(imgs, (rows, cols))
-    for row in range(len(imgs)):
-      for column in range(len(imgs[0])):
-        axs[row][column].imshow(imgs[row][column], cmap=cmap)
-        if axis:
-          axs[row][column].axis(axis)
-        if titles:
-          axs[row][column].set_title(titles[row][column])
+class custom_grids():
+  """"
+  Function to print images in a personalized grid of images according to a layout provided
+  or a simple arrangment auto calculated according to the number of columns and rows provided
+  it is also possible to add layers of effects to some images as squares, lines, etc.
+  """
+  def __init__(self,
+             imgs: List,
+             rows: int = 1,
+             cols: int = 1,
+             titles: List = None,
+             order: List = None,
+             figsize: Tuple = (10,10),
+             axis: str = None,
+             cmap: str = None,
+             use_grid_spec: bool = True
+             ):
+      self.imgs = imgs
+      self.rows = rows
+      self.cols = cols
+      self.titles = titles
+      self.order = order
+      self.figsize = figsize
+      self.axis = axis
+      self.cmap = cmap
+      self.use_gris_apec = use_grid_spec
+      self.fig = None
+      self.axs = None
 
-# function to plot images in a grid with a custom layout
-def custom_grid(imgs, rows = 1, cols = 1, titles=None, order = None, figsize = (10,10), axis=False, cmap=False, addRect=False):
-  fig = plt.figure(constrained_layout=True, figsize = figsize)
-  if not order:
-    order = [[i, [j,j+1]] for i in range(rows) for j in range(cols)]
-  gs = GridSpec(rows, cols, figure=fig)
-  for n,(i,j) in enumerate(zip(imgs,order)):
-    im = fig.add_subplot(gs[j[0],j[1][0]:j[1][1]])
-    if cmap:
-      im.imshow(i, cmap=cmap)
+  def __len__(self):
+    return len(imgs)
+
+  def show(self):
+    if not self.use_gris_apec:
+      self.fig, self.axs = plt.subplots(self.rows, self.cols, figsize=self.figsize)
+      if self.rows <= 1 or self.cols <= 1:
+        for idx, img in enumerate(self.imgs):
+          self.axs[idx].imshow(img, cmap=self.cmap)
+          if self.axis:
+            self.axs[idx].axis(self.axis)
+          if self.titles:
+            self.axs[idx].set_title(self.titles[idx])
+      else:
+        im_ind = 0
+        for row in range(self.rows):
+          for column in range(self.cols):
+            self.axs[row][column].imshow(self.imgs[im_ind], cmap=self.cmap)
+            if self.axis:
+              self.axs[row][column].axis(self.axis)
+            if self.titles:
+              self.axs[row][column].set_title(self.titles[im_ind])
+            im_ind += 1
     else:
-      im.imshow(i)
-    if axis:
-      im.axis('off')
-    if titles:
-      im.set_title(titles[n])
-    if addRect:
-      rect_e = patches.Rectangle(addRect[n][0], addRect[n][3], addRect[n][2], linewidth=1, edgecolor='r', facecolor='none')
-      rect_d = patches.Rectangle(addRect[n][1], addRect[n][3], addRect[n][2], linewidth=1, edgecolor='g', facecolor='none')
-      im.add_patch(rect_e)
-      im.add_patch(rect_d)
+      self.fig = plt.figure(constrained_layout=True, figsize=self.figsize)
+      if not self.order:
+        self.order = [[i, [j, j + 1]] for i in range(self.rows) for j in range(self.cols)]
+      gs = GridSpec(self.rows, self.cols, figure=self.fig)
+      for n, (i, j) in enumerate(zip(self.imgs, self.order)):
+        im = self.fig.add_subplot(gs[j[0], j[1][0]:j[1][1]])
+        if self.cmap:
+          im.imshow(i, cmap=self.cmap)
+        else:
+          im.imshow(i)
+        if self.axis:
+          im.axis('off')
+        if self.titles:
+          im.set_title(self.titles[n])
+  def overlay_image(self, img_idx, overlays, cmp_colors = None, alphas = None):
+    if not cmp_colors:
+      plt_clrs = plt.colormaps()
+      cmp_colors = [random.choice(plt_clrs) for i in range(len(img_idx))]
+    if not alphas:
+      alphas = [0.5 for i in range(len(img_idx))]
+    elif len(alphas) < len(img_idx):
+      alphas = [alphas[i%len(alphas)] for i in range(len(img_idx))]
+    for o_idx, i_idx in enumerate(img_idx):
+      self.fig.axes[i_idx].imshow(overlays[o_idx], cmap=cmp_colors[o_idx], alpha=alphas[o_idx])
 
-# function to plot images in a grid with a custom layout
-def custom_grid(imgs, rows = 1, cols = 1, titles=None, order = None, figsize = (10,10), axis=False, cmap=False, overlay=False):
-  fig = plt.figure(constrained_layout=True, figsize = figsize)
-  if not order:
-    order = [[i, [j,j+1]] for i in range(rows) for j in range(cols)]
-  gs = GridSpec(rows, cols, figure=fig)
-  k = imgs[0]
-  for n,(i,j) in enumerate(zip(imgs[1],order)):
-    im = fig.add_subplot(gs[j[0],j[1][0]:j[1][1]])
-    if cmap:
-      im.imshow(i, cmap=cmap)
+  def add_rects(self, img_idx, rects, rect_clrs = None, linewidth=1, facecolor=False):
+    if not rect_clrs:
+      rect_clrs = [random.choice(list(mcolors.CSS4_COLORS.keys())) for i in range(len(rects[0]))]
+    if facecolor:
+      face_clrs = rect_clrs.copy()
     else:
-      im.imshow(i)
-    if overlay:
-      im.imshow(k, cmap='gray')
-      im.imshow(i, alpha=overlay[n], cmap='gray')
-    if axis:
-      im.axis('off')
-    if titles:
-      im.set_title(titles[n])
+      face_clrs  = ['none' for i in range(len(rects[0]))]
+    for i_idx, img in enumerate(rects):
+      for r_idx,rect in enumerate(img):
+        rect = patches.Rectangle(rect[0], rect[1], rect[2], linewidth=linewidth, edgecolor=rect_clrs[r_idx],
+                               facecolor=face_clrs[r_idx])
+        self.fig.axes[img_idx[i_idx]].add_patch(rect)
 
 # function to plot images from matches function in a grid with a custom layout
 def matches_grid(imgs, rows = 1, cols = 1, titles=None, order = None, figsize = (10,10), axis=False, autoTitles=False, rotations=False):
