@@ -4,7 +4,9 @@ import matplotlib.patches as patches
 import matplotlib.colors as mcolors
 from typing import List, Dict, Tuple
 import random
-import numpy as np
+from utils import get_ORB
+from skimage import feature
+from skimage.color import rgb2gray, rgba2rgb
 
 class custom_grids():
   """"
@@ -21,6 +23,7 @@ class custom_grids():
              figsize: Tuple = (10,10),
              axis: str = None,
              cmap: str = None,
+             title_size: int = 12,
              use_grid_spec: bool = True
              ):
       self.imgs = imgs
@@ -31,9 +34,13 @@ class custom_grids():
       self.figsize = figsize
       self.axis = axis
       self.cmap = cmap
+      self.title_size = title_size
       self.use_gris_apec = use_grid_spec
       self.fig = None
       self.axs = None
+
+      if not self.order:
+        self.order = [[i, [j, j + 1]] for i in range(self.rows) for j in range(self.cols)]
 
   def __len__(self):
     return len(imgs)
@@ -42,12 +49,19 @@ class custom_grids():
     if not self.use_gris_apec:
       self.fig, self.axs = plt.subplots(self.rows, self.cols, figsize=self.figsize)
       if self.rows <= 1 or self.cols <= 1:
+        for idx, img_match in enumerate(match_imgs):
+          self.axs.imshow(img, cmap=self.cmap)
+          if self.axis:
+            self.axs.axis(self.axis)
+          if self.titles:
+            self.axs.set_title(self.titles[idx], fontsize=self.title_size)
+      elif self.rows <= 1 or self.cols <= 1:
         for idx, img in enumerate(self.imgs):
           self.axs[idx].imshow(img, cmap=self.cmap)
           if self.axis:
             self.axs[idx].axis(self.axis)
           if self.titles:
-            self.axs[idx].set_title(self.titles[idx])
+            self.axs[idx].set_title(self.titles[idx], fontsize= self.title_size)
       else:
         im_ind = 0
         for row in range(self.rows):
@@ -56,12 +70,10 @@ class custom_grids():
             if self.axis:
               self.axs[row][column].axis(self.axis)
             if self.titles:
-              self.axs[row][column].set_title(self.titles[im_ind])
+              self.axs[row][column].set_title(self.titles[im_ind], fontsize= self.title_size)
             im_ind += 1
     else:
       self.fig = plt.figure(constrained_layout=True, figsize=self.figsize)
-      if not self.order:
-        self.order = [[i, [j, j + 1]] for i in range(self.rows) for j in range(self.cols)]
       gs = GridSpec(self.rows, self.cols, figure=self.fig)
       for n, (i, j) in enumerate(zip(self.imgs, self.order)):
         im = self.fig.add_subplot(gs[j[0], j[1][0]:j[1][1]])
@@ -72,7 +84,7 @@ class custom_grids():
         if self.axis:
           im.axis('off')
         if self.titles:
-          im.set_title(self.titles[n])
+          im.set_title(self.titles[n], fontsize= self.title_size)
   def overlay_image(self, img_idx, overlays, cmp_colors = None, alphas = None):
     if not cmp_colors:
       plt_clrs = plt.colormaps()
@@ -97,41 +109,39 @@ class custom_grids():
                                facecolor=face_clrs[r_idx])
         self.fig.axes[img_idx[i_idx]].add_patch(rect)
 
-# function to plot images from matches function in a grid with a custom layout
-def matches_grid(imgs, rows = 1, cols = 1, titles=None, order = None, figsize = (10,10), axis=False, autoTitles=False, rotations=False):
-  fig = plt.figure(constrained_layout=True, figsize = figsize)
-  if not order:
-    order = [[i, [j,j+1]] for i in range(rows) for j in range(cols)]
-  gs = GridSpec(rows, cols, figure=fig)
-  keypoints1_l = []
-  keypoints2_l = []
-  matches_l = []
-  if imgs[0].shape[2] == 4:
-      k = rgb2gray(rgba2rgb(imgs[0]))
-  else:
-      k = rgb2gray(imgs[0])
-  for img in imgs[1]:
-    if img.shape[2] == 4:
-      img = rgb2gray(rgba2rgb(img))
-    else:
-      img = rgb2gray(img)
-    kp1,kp2,matches = get_ORB(k,img)
-    keypoints1_l.append(kp1)
-    keypoints2_l.append(kp2)
-    matches_l.append(matches)
-  for n,(i,j) in enumerate(zip(imgs[1],order)):
-    if i.shape[2] == 4:
-      i = rgb2gray(rgba2rgb(i))
-    else:
-      i = rgb2gray(i)
-    im = fig.add_subplot(gs[j[0],j[1][0]:j[1][1]])
-    feature.plot_matches(im, k, i, keypoints1_l[n], keypoints1_l[n], matches_l[n])
-    if axis:
-      im.axis('off')
-    if titles:
-      im.set_title(titles[n])
-    if autoTitles:
-      if type(autoTitles) == type(str('')):
-        im.set_title(autoTitles + str(matches_l[n].shape[0]))
-      else:
-        im.set_title('Matches: ' + str(matches_l[n].shape[0]) + ' -- Degrees: ' + str(autoTitles[n]))
+  def match_points(self, img_idx, matches_idxs, autoTitles = None):
+    keypoints1_l = []
+    keypoints2_l = []
+    matches_l = []
+    img = self.grayChecker(self.imgs[img_idx])
+    match_imgs = [self.grayChecker(self.imgs[idx]) for idx in matches_idxs]
+    for match in match_imgs:
+      kp1, kp2, matches = get_ORB(img, match)
+      keypoints1_l.append(kp1)
+      keypoints2_l.append(kp2)
+      matches_l.append(matches)
+
+    self.fig = plt.figure(constrained_layout=True, figsize=self.figsize)
+    gs = GridSpec(self.rows, self.cols, figure=self.fig)
+    for n, (i, j) in enumerate(zip(match_imgs, self.order)):
+      im = self.fig.add_subplot(gs[j[0], j[1][0]:j[1][1]])
+      feature.plot_matches(im, img, i, keypoints1_l[n], keypoints2_l[n], matches_l[n])
+      if self.axis:
+        im.axis('off')
+      if self.titles:
+        im.set_title(slf.titles[n], fontsize= self.title_size)
+      if autoTitles:
+        if autoTitles == True:
+          im.set_title('Matches: ' + str(matches_l[n].shape[0]), fontsize= self.title_size)
+        else:
+          im.set_title(autoTitles[n] + ' - Matches: ' + str(matches_l[n].shape[0]), fontsize= self.title_size)
+  @staticmethod
+  def grayChecker(color_img):
+    if len(color_img.shape) == 2:
+      gray_img = color_img
+    elif color_img.shape[2] == 3:
+      gray_img = rgb2gray(color_img)
+    elif color_img.shape[2] == 4:
+      gray_img = rgb2gray(rgba2rgb(color_img))
+
+    return gray_img
