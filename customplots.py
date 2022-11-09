@@ -145,3 +145,126 @@ class custom_grids():
       gray_img = rgb2gray(rgba2rgb(color_img))
 
     return gray_img
+  
+  
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+import matplotlib.patches as patches
+from pylab import *
+import itertools
+from sklearn.metrics import confusion_matrix
+
+
+def groupedBarPlot(data, xticks, title,legend=True,axislabels = False,width=0.35,figsize=(25,10), barLabel=False, png = False, pdf = False, colors = None, fsizes = False, axisLim = False, xtick_rot=False, bLconfs = ['%.2f', 14]):
+    """Width recomendado para 2 barras agrupadas es 0.35, para 3 y 4 es 0.2
+       Para usar el barLabel, debe ser una lista de listas por cada tipo,
+       aun que sea solo una barra por paso en el eje x deber ser una lista contenida dentro de otra
+       Las opciones para fsizes son:
+            'font' --> controla el tamaño de los textos por defecto
+            'axes' --> tamaño de fuente del titulo y las etiquetas del eje x & y
+            'xtick' --> tamaño de fuente de los puntos en el eje x
+            'ytick' --> tamaño de fuente en los puntos del eje y
+            'legend --> controla el tamaño de fuente de la leyenda
+            'figure' --> controla el tamaño de fuente del titulo de la figura
+       """
+    if fsizes:
+        for key,size in fsizes.items():
+            if key == 'font':
+                plt.rc(key, size=size)
+            elif key == 'axes':
+                plt.rc(key, titlesize=size)
+                plt.rc(key, labelsize=size)
+            elif key in ['xtick','ytick']:
+                plt.rc(key, labelsize=size)
+            elif key == 'legend':
+                plt.rc(key, fontsize=size)
+            elif key == 'figure':
+                plt.rc(key, titlesize=size)
+    else:
+        plt.rc('font', size=15)
+
+    x = np.arange(len(xticks))
+    if colors:
+        cl = colors
+    else:
+        cl = clrs
+
+    if figsize:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        fig, ax = plt.subplots()
+
+    rects = {}
+    if len(data) == 1:
+        ldata = list(data.values())
+        keys = list(data.keys())
+        rects[keys[0]] = ax.bar(x, ldata[0], width, label=keys[0], color = cl)
+    elif len(data) == 2:
+        ldata = list(data.values())
+        keys = list(data.keys())
+        rects[keys[0]] = ax.bar(x + width/2, ldata[0], width, label=keys[0], color = cl[2])
+        rects[keys[1]] = ax.bar(x - width/2, ldata[1], width, label=keys[1], color = cl[3])
+    elif len(data) == 3:
+        ldata = list(data.values())
+        keys = list(data.keys())
+        rects[keys[0]] = ax.bar(x, ldata[0], width, label=keys[0])
+        rects[keys[1]] = ax.bar([i+width for i in x], ldata[1], width, label=keys[1])
+        rects[keys[2]] = ax.bar([i+2*width for i in x], ldata[2], width, label=keys[2])
+    elif len(data) == 4:
+        ldata = list(data.values())
+        keys = list(data.keys())
+        rects[keys[0]] = ax.bar(x + width/2, ldata[0], width, label=keys[0], color = cl[0])
+        rects[keys[1]] = ax.bar(x - width/2, ldata[1], width, label=keys[1], color = cl[1])
+        rects[keys[2]] = ax.bar(x + 1.5*width, ldata[2], width, label=keys[2], color = cl[2])
+        rects[keys[3]] = ax.bar(x - 1.5*width, ldata[3], width, label=keys[3], color = cl[3])
+
+    # ax.patch.set_facecolor('red')
+    ax.patch.set_alpha(0.0)
+
+    if axislabels:
+        ax.set_xlabel(axislabels[0])
+        ax.set_ylabel(axislabels[1])
+
+    ax.set_title(title)
+    if len(data) == 3:
+        ax.set_xticks(x+width)
+    else:
+        ax.set_xticks(x)
+    if xtick_rot:
+        ax.set_xticklabels(xticks, rotation = xtick_rot)
+    else:
+        ax.set_xticklabels(xticks)
+
+    if legend:
+        ax.legend(prop={"size":30})
+
+    if barLabel:
+#         error = ['Hola' for i in range(9)]
+#         ax.bar_label(list(rects.values())[0], padding=3, labels=[ e for e in error])
+        try:
+            for j,i in enumerate(rects.values()):
+                ax.bar_label(i, padding=3, labels=[barLabel[0][:].format(ldata[j][r], barLabel[j+1][r]) for r in range(len(ldata[0]))])
+        except:
+            for j,i in enumerate(rects.values()):
+                ax.bar_label(i, padding=3, labels=['{}\n{:.2f}%'.format(ldata[j][r], barLabel[j][r]) for r in range(len(ldata[0]))])
+    else:
+        for i in rects.values():
+            ax.bar_label(i, padding=3, fmt = bLconfs[0], fontsize = bLconfs[1])
+
+    fig.tight_layout()
+
+    if axisLim:
+        for key,values in axisLim.items():
+            if key == 'xlim':
+                plt.xlim(values[0], values[1])
+            elif key == 'ylim':
+                plt.ylim(values[0], values[1])
+
+    if png:
+        plt.savefig(png + '.png', transparent=True)
+    if pdf:
+        plt.savefig(pdf + '.pdf', transparent=True)
+
+    plt.show()
