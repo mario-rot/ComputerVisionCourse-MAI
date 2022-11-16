@@ -292,12 +292,12 @@ def plot_confusion_matrix(cm, classes, normalize=False,colors = None,tit = False
         if tit:
             title, fmt = tit, '.2f'
         else:
-            title, fmt = 'Matriz de confusión normalizada', '.2f'
+            title, fmt = 'Normalized confusion matrix', '.2f'
     else:
         if tit:
             title, fmt = tit, 'd'
         else:
-            title, fmt = 'Matriz de confusión sin normalizar', 'd'
+            title, fmt = 'Confusion matrix without normalization', 'd'
         cm = cm.astype(int)
     plt.figure(figsize=(14,14))
     if colors:
@@ -319,8 +319,8 @@ def plot_confusion_matrix(cm, classes, normalize=False,colors = None,tit = False
         plt.ylabel(axisLabels[0])
         plt.xlabel(axisLabels[1])
     else:
-        plt.ylabel('Clase Verdadera, yt')
-        plt.xlabel('Clase Predicha, y')
+        plt.ylabel('True Class, yt')
+        plt.xlabel('Predicted Class, y')
 
     if png:
         plt.savefig(png + '.png', transparent=True, bbox_inches='tight')
