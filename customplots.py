@@ -329,3 +329,11 @@ def plot_confusion_matrix(cm, classes, normalize=False,colors = None,tit = False
 
     plt.show()
 
+def scatter_3D(data, labels, axes, title, figsize=(10, 10), save=None):
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(data[:, 0], data[:, 1], data[:, 2], c=labels, s=15)
+        ax.set_title(title)
+        ax.set_xlabel(axes[0])
+        ax.set_ylabel(axes[1])
+        ax.set_zlabel(axes[2])
