@@ -43,7 +43,7 @@ class custom_grids():
         self.order = [[i, [j, j + 1]] for i in range(self.rows) for j in range(self.cols)]
 
   def __len__(self):
-    return len(imgs)
+    return len(self.imgs)
 
   def show(self):
     if not self.use_gris_apec:
@@ -129,7 +129,7 @@ class custom_grids():
       if self.axis:
         im.axis('off')
       if self.titles:
-        im.set_title(slf.titles[n], fontsize= self.title_size)
+        im.set_title(self.titles[n], fontsize= self.title_size)
       if autoTitles:
         if autoTitles == True:
           im.set_title('Matches: ' + str(matches_l[n].shape[0]), fontsize= self.title_size)
