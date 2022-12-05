@@ -5,7 +5,7 @@ import matplotlib.colors as mcolors
 from typing import List, Dict, Tuple
 import random
 from utils import get_ORB
-from skimage import feature
+from skimage import feature, segmentation
 from skimage.color import rgb2gray, rgba2rgb
 
 class custom_grids():
@@ -145,7 +145,40 @@ class custom_grids():
       gray_img = rgb2gray(rgba2rgb(color_img))
 
     return gray_img
+
+class test_params():
+  """
+      Function to test parameters of several computer vision methods over an image
+  """
+  def __init__(self,
+              method,
+              images,
+              params,
+              visualize = False):
+
+      self.method = method
+      self.images = images
+      self.params = params
+      self.visualize = visualize
+      keys, values = zip(*self.params.items())
+      self.params_comb = [dict(zip(keys, v)) for v in itertools.product(*values)] 
+      
   
+  def __getitem__(self, idx):
+      segments = []
+      contours = []
+      blancs = []
+      img = self.images[idx]
+      titles = []
+      for combination in self.params_comb:
+          res = self.method(img,**combination)
+          segments.append(res)
+          contours.append(segmentation.mark_boundaries(img, res))
+          blancs.append(np.ones((10,1,3)))
+          titles += ['',combination,'']
+      if self.visualize:
+          custom_grids([element for tup in zip(segments,blancs,contours) for element in tup],len(self.params_comb),3,titles, axis='off', figsize=(5,10)).show()
+      return segments, contours
   
 import pandas as pd
 import numpy as np
